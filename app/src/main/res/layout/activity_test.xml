@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <com.cearo.android.mycoolviewapplication.Test.TestTouchEventViewGroup
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:background="@android:color/darker_gray" >
+
+        <com.cearo.android.mycoolviewapplication.Test.TestTouchEventView
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:background="@android:color/holo_orange_light"/>
+
+    </com.cearo.android.mycoolviewapplication.Test.TestTouchEventViewGroup>
+
+
+</FrameLayout>
