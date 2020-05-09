@@ -1,9 +1,12 @@
 package com.cearo.android.mycoolviewapplication;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.SystemClock;
 import android.text.TextPaint;
@@ -26,15 +29,15 @@ public class SeparateEditText extends AppCompatEditText {
     // 表示整个控件的范围
     private RectF contentRect = new RectF();
     // 字符宽度
-    float textWidthCache = 10f;
+    private static float TEXT_WIDTH = 0;
     // 字符组的个数
-    private int maxTextGroupSize = 4;
+    private int mTextGroupSize;
     // 每个字符组的最大可容纳字符个数
-    private int maxTextLength = 5;
+    private int mTextMaxLength;
     // 字符组之间的间隔
-    private float interval = dp2px(8);
+    private static final float INTERVAL = dp2px(8);
     // 每个bottomLine上的字符
-    private StringBuilder[] textGroup;
+    private StringBuilder[] mTextGroup;
     // 光标显示时长
     private static final int BLINK = 500;
     // 光标开始显示的时间
@@ -42,34 +45,52 @@ public class SeparateEditText extends AppCompatEditText {
     // 当前光标所在位置
     private int currCursorPosition = 0;
     private int selectedBottomLineWidth = 3;
-    private final float bottomLineOffset = dp2px(7);
-    private volatile boolean cursorVisible = true;
-    private int lastTextLength = 0;
-
-    private String separator;
+    private static final float BOTTOM_LINE_OFFSET = dp2px(7);
+    private volatile boolean mCursorVisible;
+    private int mLastTextLength = 0;
+    private int mBackground;
+    private static final int BACKGROUND_LINE = 0;
+    private static final int BACKGROUND_ROUND_RECT = 1;
+    private String mSeparator;
 
     private Paint cursorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private Paint bottomLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
 
     public SeparateEditText(Context context, AttributeSet attrs) {
         super(context, attrs);
         setBackground(null);
-        bottomLinePaint.setColor(Color.GREEN);
-        bottomLinePaint.setStyle(Paint.Style.FILL);
-        bottomLinePaint.setStrokeWidth(1);
 
-        cursorPaint.setColor(Color.BLACK);
-        cursorPaint.setStyle(Paint.Style.FILL);
-        cursorPaint.setStrokeWidth(1);
+        backgroundPaint.setStyle(Paint.Style.STROKE);
+        TypedArray array = context.obtainStyledAttributes(attrs, R.styleable.SeparateEditText);
+        mTextGroupSize = array.getInteger(R.styleable.SeparateEditText_size, 1);
+        mTextMaxLength = array.getInteger(R.styleable.SeparateEditText_textMaxLength, 5);
+        int color = array.getColor(R.styleable.SeparateEditText_bottomLineColor, Color.BLACK);
+        backgroundPaint.setColor(color);
+        mBackground = array.getInteger(R.styleable.SeparateEditText_textBackground, BACKGROUND_LINE);
+        mCursorVisible = array.getBoolean(R.styleable.SeparateEditText_cursorVisible, true);
+
+        final String separator = array.getString(R.styleable.SeparateEditText_separator);
+        if (!TextUtils.isEmpty(separator)) {
+            setSeparator(separator);
+        }
+        array.recycle();
+
+        cursorPaint.setColor(color);
+        cursorPaint.setStrokeWidth(2);
 
         textPaint.setTextSize(getTextSize());
+        textPaint.setTextAlign(Paint.Align.CENTER);
 
-        textGroup = new StringBuilder[maxTextGroupSize];
-        for (int i = 0; i < maxTextGroupSize; i++) {
-            textGroup[i] = new StringBuilder(maxTextLength);
+        mTextGroup = new StringBuilder[mTextGroupSize];
+        for (int i = 0; i < mTextGroupSize; i++) {
+            mTextGroup[i] = new StringBuilder(mTextMaxLength);
         }
+
+        Rect rect = new Rect();
+        textPaint.getTextBounds("0", 0, 1, rect);
+        TEXT_WIDTH = rect.width();
     }
 
     /**
@@ -89,7 +110,7 @@ public class SeparateEditText extends AppCompatEditText {
 
         textGroupRect.left = 0;
         textGroupRect.top = getPaddingTop();
-        textGroupRect.right = (getWidth() - getPaddingLeft() - getPaddingRight() - interval * (maxTextGroupSize - 1)) / maxTextGroupSize;
+        textGroupRect.right = (getWidth() - getPaddingLeft() - getPaddingRight() - INTERVAL * (mTextGroupSize - 1)) / mTextGroupSize;
         textGroupRect.bottom = getHeight() - getPaddingBottom();
     }
 
@@ -107,9 +128,18 @@ public class SeparateEditText extends AppCompatEditText {
             if (!isFocused()) {
                 requestFocus();
             }
+            invalidate();
             return true;
         }
         return super.onTouchEvent(event);
+    }
+
+    @Override
+    protected void onFocusChanged(boolean focused, int direction, Rect previouslyFocusedRect) {
+        super.onFocusChanged(focused, direction, previouslyFocusedRect);
+        if (!focused) {
+            currCursorPosition = -1;
+        }
     }
 
     @Override
@@ -119,6 +149,9 @@ public class SeparateEditText extends AppCompatEditText {
         super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
     }
 
+    /**
+     *  禁用edittext的selectHandler,就是选择文本时显示在头尾的两个小指针
+     */
     private void disableSelectHandler() {
         try {
             Class clazz = TextView.class;
@@ -138,7 +171,7 @@ public class SeparateEditText extends AppCompatEditText {
 
     private int calculateCursorPosition(float x, float y) {
         if (contentRect.contains(x, y)) {
-            return (int) (x / (textGroupRect.width() + interval));
+            return (int) (x / (textGroupRect.width() + INTERVAL));
         }
 
         return 0;
@@ -150,26 +183,34 @@ public class SeparateEditText extends AppCompatEditText {
         float padding = getPaddingLeft();
         canvas.translate(padding, 0);
 
-        for (int i = 0; i < maxTextGroupSize; i++) {
-            float offsetX = i * (textGroupRect.right + interval);
+        for (int i = 0; i < mTextGroupSize; i++) {
+            float offsetX = i * (textGroupRect.right + INTERVAL);
 
-            // 画底边
+            // 画背景
             if (i == currCursorPosition) {
-                bottomLinePaint.setStrokeWidth(selectedBottomLineWidth);
+                backgroundPaint.setStrokeWidth(selectedBottomLineWidth);
             } else {
-                bottomLinePaint.setStrokeWidth(1);
+                backgroundPaint.setStrokeWidth(1);
             }
-            canvas.drawLine(offsetX + textGroupRect.left, contentRect.bottom - bottomLineOffset,
-                    offsetX + textGroupRect.right, contentRect.bottom - bottomLineOffset,
-                    bottomLinePaint);
+
+            if (mBackground == BACKGROUND_LINE) {
+                canvas.drawLine(offsetX + textGroupRect.left, contentRect.bottom - BOTTOM_LINE_OFFSET,
+                        offsetX + textGroupRect.right, contentRect.bottom - BOTTOM_LINE_OFFSET,
+                        backgroundPaint);
+            } else {
+                canvas.drawRoundRect(
+                        offsetX + textGroupRect.left, contentRect.top + 3,
+                        offsetX + textGroupRect.right, contentRect.bottom - 3,
+                        5f, 5f,
+                        backgroundPaint);
+            }
 
             // 画文字
             float textWidth = 0f;
-            if (textGroup[i] != null && !TextUtils.isEmpty(textGroup[i].toString())) {
-                String text = textGroup[i].toString();
-                int textLength = text.length();
-                textWidth = textWidthCache * textLength;
-                canvas.drawText(text, offsetX + textGroupRect.centerX() - textWidth / 2, textGroupRect.bottom - 3, textPaint);
+            if (mTextGroup[i] != null && !TextUtils.isEmpty(mTextGroup[i].toString())) {
+                String text = mTextGroup[i].toString();
+                textWidth = textPaint.measureText(text);
+                canvas.drawText(text, offsetX + textGroupRect.centerX(), textGroupRect.bottom - 3, textPaint);
             }
 
             // 画光标
@@ -189,7 +230,7 @@ public class SeparateEditText extends AppCompatEditText {
     }
 
     private boolean shouldRenderCursor() {
-        if (!cursorVisible) {
+        if (!mCursorVisible) {
             return false;
         }
 
@@ -197,18 +238,21 @@ public class SeparateEditText extends AppCompatEditText {
             return false;
         }
 
-        if (currCursorPosition >= maxTextGroupSize) {
+        if (currCursorPosition >= mTextGroupSize) {
             return false;
         }
         return (SystemClock.uptimeMillis() - mShowCursor) % (2 * BLINK) < BLINK;
     }
 
     public String getContent() {
-        if (textGroup != null) {
+        if (mTextGroup != null) {
             StringBuilder text = new StringBuilder();
-            text.append(textGroup[0]);
-            for (int i = 1; i < textGroup.length; i++) {
-                text.append(".").append(textGroup[i]);
+            text.append(mTextGroup[0]);
+            for (int i = 1; i < mTextGroup.length; i++) {
+                if (!TextUtils.isEmpty(mSeparator)) {
+                    text.append(mSeparator);
+                }
+                text.append(mTextGroup[i]);
             }
 
             return text.toString();
@@ -224,51 +268,54 @@ public class SeparateEditText extends AppCompatEditText {
         mShowCursor = SystemClock.uptimeMillis();
 
         final int length = text.length();
-        int increase = length - lastTextLength;
+        int increase = length - mLastTextLength;
         if (increase == 1) {
             String newText = text.subSequence(length - 1, length).toString();
-            if (textGroup == null) {
+            if (mTextGroup == null) {
                 return;
             }
 
-            if (textGroup[currCursorPosition].length() >= maxTextLength
-                    || (separator != null && separator.equals(newText)) ) {
-                currCursorPosition = Math.min(currCursorPosition + 1, maxTextGroupSize - 1);
+            if (mTextGroup[currCursorPosition].length() >= mTextMaxLength
+                    || mSeparator != null && mSeparator.equals(newText)) {
+                currCursorPosition = Math.min(currCursorPosition + 1, mTextGroupSize - 1);
             } else {
-                textGroup[currCursorPosition].append(newText);
+                mTextGroup[currCursorPosition].append(newText);
+                if (mTextGroup[currCursorPosition].length() >= mTextMaxLength) {
+                    currCursorPosition = Math.min(currCursorPosition + 1, mTextGroupSize - 1);
+                }
             }
         } else if (increase > 1) {
             // 统一用数组处理，因为不含分隔符时也有可能达到单组字符数上限
             String[] newTextGroup;
             String newText = text.toString();
-            if (newText.contains(separator)) {
-                newTextGroup = newText.split(".".equals(separator) ? "\\." : separator);
+            if (newText.contains(mSeparator)) {
+                newTextGroup = newText.split(".".equals(mSeparator) ? "\\." : mSeparator);
             } else {
-                int size = length / maxTextLength + 1;
+                int size = length / mTextMaxLength + 1;
                 newTextGroup = new String[size];
                 for (int i = 0; i < size; i++) {
-                    newTextGroup[i] = newText.substring(i * maxTextLength, Math.min((i + 1) * maxTextLength, length));
+                    newTextGroup[i] = newText.substring(i * mTextMaxLength, Math.min((i + 1) * mTextMaxLength, length));
                 }
             }
 
             for (int i = 0; i < newTextGroup.length; i++) {
-                if (newTextGroup[i].length() > maxTextLength) {
+                if (newTextGroup[i].length() > mTextMaxLength) {
                     break;
                 }
 
-                textGroup[currCursorPosition].append(newTextGroup[i]);
-                if (i < newTextGroup.length - 1 || ((i == newTextGroup.length - 1) && newTextGroup[i].length() == maxTextLength)) {
+                mTextGroup[currCursorPosition].append(newTextGroup[i]);
+                if (i < newTextGroup.length - 1 || ((i == newTextGroup.length - 1) && newTextGroup[i].length() == mTextMaxLength)) {
                     // 最后一个除且长度没达到maxLength的除外
                     ++currCursorPosition;
                 }
-                if (currCursorPosition > maxTextGroupSize) {
+                if (currCursorPosition > mTextGroupSize) {
                     break;
                 }
             }
-            currCursorPosition = Math.min(currCursorPosition, maxTextGroupSize - 1);
+            currCursorPosition = Math.min(currCursorPosition, mTextGroupSize - 1);
         }
 
-        lastTextLength = length;
+        mLastTextLength = length;
     }
 
     private MyInputConnection myInputConnection = new MyInputConnection(null, true);
@@ -280,7 +327,7 @@ public class SeparateEditText extends AppCompatEditText {
     }
 
     public void setSeparator(String separator) {
-        this.separator = separator;
+        this.mSeparator = separator;
     }
 
     private class MyInputConnection extends InputConnectionWrapper {
@@ -292,9 +339,9 @@ public class SeparateEditText extends AppCompatEditText {
         public boolean sendKeyEvent(KeyEvent event) {
             if (event.getAction() == KeyEvent.ACTION_UP) {
                 if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
-                    if (!TextUtils.isEmpty(textGroup[currCursorPosition])) {
-                        int length = textGroup[currCursorPosition].length();
-                        textGroup[currCursorPosition].delete(length - 1, length);
+                    if (!TextUtils.isEmpty(mTextGroup[currCursorPosition])) {
+                        int length = mTextGroup[currCursorPosition].length();
+                        mTextGroup[currCursorPosition].delete(length - 1, length);
                         invalidate();
                         return true;
                     } else if (currCursorPosition != 0) {
@@ -311,21 +358,21 @@ public class SeparateEditText extends AppCompatEditText {
         public boolean performEditorAction(int editorAction) {
             ++currCursorPosition;
             if (editorAction == 5) {
-                if (currCursorPosition < maxTextGroupSize) {
+                if (currCursorPosition < mTextGroupSize) {
+                    invalidate();
                     return true;
                 } else {
                     currCursorPosition = -1;
+                    invalidate();
                 }
-
-                invalidate();
             }
             return super.performEditorAction(editorAction);
         }
 
     }
 
-    private float dp2px(int dp) {
-        final float density = getResources().getDisplayMetrics().density;
+    private static float dp2px(int dp) {
+        final float density = Resources.getSystem().getDisplayMetrics().density;
         return (density * dp + 0.5f);
     }
 }

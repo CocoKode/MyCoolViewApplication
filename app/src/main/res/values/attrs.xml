@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="SeparateEditText" >
+        <attr name="size" format="integer" />
+        <attr name="textMaxLength" format="integer" />
+        <attr name="textBackground">
+            <enum name="bottomLine" value="0"/>
+            <enum name="roundRect" value="1" />
+        </attr>
+        <attr name="bottomLineColor" format="color" />
+        <attr name="separator" format="string" />
+        <attr name="cursorVisible" format="boolean" />
+    </declare-styleable>
+
+</resources>
