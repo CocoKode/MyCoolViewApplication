@@ -270,16 +270,16 @@ public class SeparateEditText extends AppCompatEditText {
         final int length = text.length();
         int increase = length - mLastTextLength;
         if (increase == 1) {
-            String newText = text.subSequence(length - 1, length).toString();
+            char newChar = text.charAt(length - 1);
             if (mTextGroup == null) {
                 return;
             }
 
             if (mTextGroup[currCursorPosition].length() >= mTextMaxLength
-                    || mSeparator != null && mSeparator.equals(newText)) {
+                    || mSeparator != null && mSeparator.charAt(0) == newChar) {
                 currCursorPosition = Math.min(currCursorPosition + 1, mTextGroupSize - 1);
             } else {
-                mTextGroup[currCursorPosition].append(newText);
+                mTextGroup[currCursorPosition].append(newChar);
                 if (mTextGroup[currCursorPosition].length() >= mTextMaxLength) {
                     currCursorPosition = Math.min(currCursorPosition + 1, mTextGroupSize - 1);
                 }

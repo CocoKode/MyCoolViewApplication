@@ -26,8 +26,7 @@ public class LoginActivity extends AppCompatActivity {
         loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                Toast.makeText(LoginActivity.this, editText.getContent(), Toast.LENGTH_SHORT).show();
-                editText.setText("1.2.45656");
+                Toast.makeText(LoginActivity.this, editText.getContent(), Toast.LENGTH_SHORT).show();
             }
         });
     }
