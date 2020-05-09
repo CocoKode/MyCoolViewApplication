@@ -313,6 +313,13 @@ public class SeparateEditText extends AppCompatEditText {
                 }
             }
             currCursorPosition = Math.min(currCursorPosition, mTextGroupSize - 1);
+        } else {
+            if (mTextGroup != null && "".equals(text.toString())) {
+                for (StringBuilder builder : mTextGroup) {
+                    builder.delete(0, builder.length());
+                    currCursorPosition = 0;
+                }
+            }
         }
 
         mLastTextLength = length;
