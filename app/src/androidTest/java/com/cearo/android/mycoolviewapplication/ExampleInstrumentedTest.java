@@ -5,7 +5,7 @@ import android.content.Context;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.cearo.android.mycoolviewapplication.CustomViews.ThumbUpView;
+import com.cearo.android.mycoolviewapplication.customViews.ThumbUpView;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -1,4 +1,4 @@
-package com.cearo.android.mycoolviewapplication.CustomViews;
+package com.cearo.android.mycoolviewapplication.customViews;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -11,7 +11,6 @@ import android.graphics.Camera;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
-import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.annotation.Nullable;

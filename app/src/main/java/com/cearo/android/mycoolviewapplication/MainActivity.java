@@ -12,10 +12,10 @@ import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private String[] mItems = new String[] {
-        "Flip折叠", "小米运动", "健康尺", "即刻点赞", "图片加载与缩放滑动", "多点触控", "测试事件分发", "登录页面"
+        "Flip折叠", "小米运动", "健康尺", "即刻点赞", "图片加载与缩放滑动", "仿高德上拉滑动页", "登录页面"
     };
 
     @Override
@@ -36,23 +36,8 @@ public class MainActivity extends AppCompatActivity {
             relativeParams.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
             Button button = new Button(this);
             button.setText(mItems[i]);
-            final int index = i;
-            if (i == mItems.length - 1) {
-                button.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                    }
-                });
-            } else {
-                button.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        startCustomViewActivity(index);
-                    }
-                });
-            }
-
+            button.setTag(i);
+            button.setOnClickListener(this);
             layout.addView(button, relativeParams);
 
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0);
@@ -66,5 +51,20 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, CustomViewActivity.class);
         intent.putExtra("view_index", index);
         startActivity(intent);
+    }
+
+    @Override
+    public void onClick(View view) {
+        Object tagObj = view.getTag();
+        if (tagObj instanceof Integer) {
+            int tag = (int) tagObj;
+            if (tag == (mItems.length - 2)) {
+                startActivity(new Intent(MainActivity.this, AmapActivity.class));
+            } else if (tag == (mItems.length - 1)) {
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+            } else {
+                startCustomViewActivity(tag);
+            }
+        }
     }
 }

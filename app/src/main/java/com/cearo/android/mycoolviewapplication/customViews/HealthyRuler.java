@@ -1,4 +1,4 @@
-package com.cearo.android.mycoolviewapplication.CustomViews;
+package com.cearo.android.mycoolviewapplication.customViews;
 
 import android.content.Context;
 import android.graphics.Canvas;

@@ -1,7 +1,5 @@
 package com.cearo.android.mycoolviewapplication;
 
-import com.cearo.android.mycoolviewapplication.CustomViews.ThumbUpView;
-
 import org.junit.Test;
 
 import static org.junit.Assert.*;

@@ -8,12 +8,10 @@ import android.widget.FrameLayout;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.cearo.android.mycoolviewapplication.CustomViews.FlipView;
-import com.cearo.android.mycoolviewapplication.CustomViews.HealthyRuler;
-import com.cearo.android.mycoolviewapplication.CustomViews.hencoder.ImageLoaderAndScaleView;
-import com.cearo.android.mycoolviewapplication.CustomViews.XiaomiSportView;
-import com.cearo.android.mycoolviewapplication.CustomViews.ThumbUpView;
-import com.cearo.android.mycoolviewapplication.CustomViews.hencoder.multiTouchView;
+import com.cearo.android.mycoolviewapplication.customViews.FlipView;
+import com.cearo.android.mycoolviewapplication.customViews.HealthyRuler;
+import com.cearo.android.mycoolviewapplication.customViews.XiaomiSportView;
+import com.cearo.android.mycoolviewapplication.customViews.ThumbUpView;
 
 public class CustomViewActivity extends AppCompatActivity {
 
@@ -48,11 +46,6 @@ public class CustomViewActivity extends AppCompatActivity {
             case 3:
                 view = new ThumbUpView(this, null);
                 break;
-            case 4:
-                view = new ImageLoaderAndScaleView(this);
-                break;
-            case 5:
-                view = new multiTouchView(this);
             default:
                 break;
         }
